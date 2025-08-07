@@ -6,17 +6,17 @@ import other.move.Move;
 import search.mcts.MCTS;
 
 /**
- * Node for Multiplayer PN-MCTS tree.
+ * Node for GPN-MCTS tree (ECAI 2025 paper).
  */
-public final class MP_PNMCTSNode extends IPNMCTSNode
+public final class GPNMCTSNode extends IPNMCTSNode
 {
 	
 	//-------------------------------------------------------------------------
 	
 	/**
-	 * Nodes types in search trees in PN-MCTS
+	 * Nodes types in search trees in GPN-MCTS
 	 */
-	public enum MP_PNMCTSNodeTypes 
+	public enum GPN_MCTSNodeTypes 
 	{
         /** An OR node */
         OR_NODE,
@@ -26,9 +26,9 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
     }
 	
 	/**
-	 * Values of nodes in search trees in PN-MCTS
+	 * Values of nodes in search trees in GPN-MCTS
 	 */
-	public enum MP_PNMCTSNodeValues
+	public enum GPN_MCTSNodeValues
 	{
 		/** A proven node */
 		TRUE,
@@ -46,7 +46,7 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 	protected double[] proofNumbers;
 	
 	/** The value (in terms of proven/disproven/dont know) for this node (one per player) */
-	protected MP_PNMCTSNodeValues[] proofValue;
+	protected GPN_MCTSNodeValues[] proofValue;
 	
 	/** The player to move in this node. */
 	protected int currentPlayer;
@@ -68,7 +68,7 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
      * @param parentMoveWithoutConseq
      * @param context
      */
-    public MP_PNMCTSNode
+    public GPNMCTSNode
     (
     	final MCTS mcts, 
     	final BaseNode parent, 
@@ -87,18 +87,18 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
     	numPlayers = context.trial().ranking().length - 1;
     	
     	proofNumbers = new double[numPlayers + 1];
-    	proofValue = new MP_PNMCTSNodeValues[numPlayers + 1];
+    	proofValue = new GPN_MCTSNodeValues[numPlayers + 1];
    
     	for (int p = 1; p <= numPlayers; p++) 
     	{
     		proofNumbers[p] = 1.0;
-    		proofValue[p] = MP_PNMCTSNodeValues.UNKNOWN;
+    		proofValue[p] = GPN_MCTSNodeValues.UNKNOWN;
     	}
     	
     	if (parent != null)
     		evaluate();
     	
-        setProofAndDisproofNumbers();
+        setProofNumbers();
     }
     
     //-------------------------------------------------------------------------
@@ -116,24 +116,24 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
     			// TODO check if this handles swap rule correctly
     			final double rank = context.trial().ranking()[p];
     			
-    			if (rank == ((MP_PNMCTSNode) parent).bestAvailableRank)
+    			if (rank == ((GPNMCTSNode) parent).bestAvailableRank)
     			{
     				// proven node
     				proofNumbers[p] = 0.0;
-    				proofValue[p] = MP_PNMCTSNodeValues.TRUE;
+    				proofValue[p] = GPN_MCTSNodeValues.TRUE;
     			}
     			else
     			{
     				// disproven node
     				proofNumbers[p] = Double.POSITIVE_INFINITY;
-    				proofValue[p] = MP_PNMCTSNodeValues.FALSE;
+    				proofValue[p] = GPN_MCTSNodeValues.FALSE;
     			}
     		}
     	}
     }
     
     @Override
-    public boolean setProofAndDisproofNumbers() 
+    public boolean setProofNumbers() 
     {
         if (legalMoves.length > 0) 
         {
@@ -143,17 +143,17 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
         	
         	for (int playerNum = 1; playerNum <= numPlayers; playerNum++)
         	{
-        		if (proofValue[playerNum] != MP_PNMCTSNodeValues.UNKNOWN)
+        		if (proofValue[playerNum] != GPN_MCTSNodeValues.UNKNOWN)
         			continue;
 
-        		final MP_PNMCTSNodeTypes playerType = (playerNum == currentPlayer ? MP_PNMCTSNodeTypes.OR_NODE : MP_PNMCTSNodeTypes.AND_NODE);
+        		final GPN_MCTSNodeTypes playerType = (playerNum == currentPlayer ? GPN_MCTSNodeTypes.OR_NODE : GPN_MCTSNodeTypes.AND_NODE);
 	        	switch (playerType)
 	        	{
 				case AND_NODE:
 					proof = 0.0;
 					for (final BaseNode child : children)
 					{
-						final MP_PNMCTSNode childNode = (MP_PNMCTSNode) child;
+						final GPNMCTSNode childNode = (GPNMCTSNode) child;
 						if (childNode != null)
 						{
 							proof += childNode.proofNumber(playerNum);
@@ -171,19 +171,19 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 						
 						if (proof == 0.0) 
 						{
-							proofValue[playerNum] = MP_PNMCTSNodeValues.TRUE;
+							proofValue[playerNum] = GPN_MCTSNodeValues.TRUE;
 							for (int p = 1; p <= numPlayers; p++)
 							{
 								if (p != playerNum)
 								{
-									proofValue[p] = MP_PNMCTSNodeValues.FALSE;
+									proofValue[p] = GPN_MCTSNodeValues.FALSE;
 									proofNumbers[p] = Double.POSITIVE_INFINITY;
 								}
 							}
 						}
 						else if (proof == Double.POSITIVE_INFINITY)
 						{
-							proofValue[playerNum] = MP_PNMCTSNodeValues.FALSE;
+							proofValue[playerNum] = GPN_MCTSNodeValues.FALSE;
 						}
 						
 						changed = true;
@@ -195,7 +195,7 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 					
 					for (final BaseNode child : children)
 					{
-						final MP_PNMCTSNode childNode = (MP_PNMCTSNode) child;
+						final GPNMCTSNode childNode = (GPNMCTSNode) child;
 						if (childNode != null)
 						{
 							if (childNode.proofNumber(playerNum) < proof)
@@ -216,19 +216,19 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 						
 						if (proof == 0.0) 
 						{
-							proofValue[playerNum] = MP_PNMCTSNodeValues.TRUE;
+							proofValue[playerNum] = GPN_MCTSNodeValues.TRUE;
 							for (int p = 1; p <= numPlayers; p++)
 							{
 								if (p != playerNum)
 								{
-									proofValue[p] = MP_PNMCTSNodeValues.FALSE;
+									proofValue[p] = GPN_MCTSNodeValues.FALSE;
 									proofNumbers[p] = Double.POSITIVE_INFINITY;
 								}
 							}
 						}
 						else if (proof == Double.POSITIVE_INFINITY)
 						{
-							proofValue[playerNum] = MP_PNMCTSNodeValues.FALSE;
+							proofValue[playerNum] = GPN_MCTSNodeValues.FALSE;
 						}
 						
 						changed = true;
@@ -236,7 +236,7 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 	                
 	                break;
 				default:
-					System.err.println("Unknown node type in MP_PNMCTSNode.setProofAndDisproofNumbers()");
+					System.err.println("Unknown node type in GPNMCTSNode.setProofNumbers()");
 					break;
 	        	}
         	}
@@ -258,10 +258,10 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
 					this.proofNumbers[playerNum] = 0.0;
 					break;
 				case UNKNOWN:
-					System.err.println("Terminal node has UNKNOWN proof value in MP_PNMCTSNode!");
+					System.err.println("Terminal node has UNKNOWN proof value in GPNMCTSNode!");
 					break;
 				default:
-					System.err.println("Unknown proof value in MP_PNMCTSNode.setProofAndDisproofNumbers()");
+					System.err.println("Unknown proof value in GPNMCTSNode.setProofNumbers()");
 					break;
 	        	}
         	}
@@ -284,16 +284,16 @@ public final class MP_PNMCTSNode extends IPNMCTSNode
     @Override
     public boolean isValueProven(final int agent)
     {
-    	return (proofValue[agent] == MP_PNMCTSNodeValues.TRUE);
+    	return (proofValue[agent] == GPN_MCTSNodeValues.TRUE);
     }
     
     @Override
     public double expectedScore(final int agent)
     {
-    	if (proofValue[agent] == MP_PNMCTSNodeValues.TRUE && parent != null)
+    	if (proofValue[agent] == GPN_MCTSNodeValues.TRUE && parent != null)
     	{
     		//System.out.println("returning " + RankUtils.rankToUtil(((MP_PNMCTSNode) parent).bestAvailableRank, numPlayers) + " instead of " + super.expectedScore(agent));
-			return RankUtils.rankToUtil(((MP_PNMCTSNode) parent).bestAvailableRank, numPlayers);
+			return RankUtils.rankToUtil(((GPNMCTSNode) parent).bestAvailableRank, numPlayers);
     	}
     	
     	return super.expectedScore(agent);

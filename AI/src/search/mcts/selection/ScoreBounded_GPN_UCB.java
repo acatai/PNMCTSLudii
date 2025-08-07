@@ -11,13 +11,14 @@ import other.state.State;
 import search.mcts.MCTS;
 import search.mcts.backpropagation.BackpropagationStrategy;
 import search.mcts.nodes.BaseNode;
-import search.mcts.nodes.MP_PNMCTSNode;
+import search.mcts.nodes.ScoreBoundsGPNMCTSNode;
 
 /**
- * A UCB1-based selection strategy that also includes a 
- * proof-number-search-based term, used for multiplayer games.
+ * A Score Bounded UCB1-based selection strategy that also includes a 
+ * proof-number-search-based term, used for Score Bounded GPN-MCTS.
+ * 
  */
-public final class MP_PNS_UCB implements SelectionStrategy
+public final class ScoreBounded_GPN_UCB implements SelectionStrategy
 {
 	
 	//-------------------------------------------------------------------------
@@ -30,7 +31,6 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	    RANK,
 	    SUM,
 	    MAX,
-	    // SOFTMAX?
 	}
 	
 	//-------------------------------------------------------------------------
@@ -52,7 +52,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	/**
 	 * Constructor with default value sqrt(2.0) for exploration constant
 	 */
-	public MP_PNS_UCB()
+	public ScoreBounded_GPN_UCB()
 	{
 		this(Math.sqrt(2.0), 1.0, PNUCT_VARIANT.RANK);
 	}
@@ -65,7 +65,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	 * @param pnConstant
 	 * @param variant
 	 */
-	public MP_PNS_UCB(final double explorationConstant, final double pnConstant, final PNUCT_VARIANT variant)
+	public ScoreBounded_GPN_UCB(final double explorationConstant, final double pnConstant, final PNUCT_VARIANT variant)
 	{
 		this.explorationConstant = explorationConstant;
 		this.pnConstant = pnConstant;
@@ -87,7 +87,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
         final int moverAgent = state.playerToAgent(state.mover());
         final double unvisitedValueEstimate = current.valueEstimateUnvisitedChildren(moverAgent);
 
-        final MP_PNMCTSNode currentMP_PNMCTSNode = (MP_PNMCTSNode) current;
+        final ScoreBoundsGPNMCTSNode currentMP_PNMCTSNode = (ScoreBoundsGPNMCTSNode) current;
         if (currentMP_PNMCTSNode.childSelectionScoresDirty())
         {
         	updateChildrenSelectionScores(currentMP_PNMCTSNode);
@@ -95,17 +95,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
         
         for (int i = 0; i < numChildren; ++i) 
         {
-        	final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
-        	
-        	// TODO the isValueProven() check shouldn't be necessary if we 
-        	// backpropagate early for solved nodes
-        	
-        	// old PN-MCTS would prune proven-loss children here, but that doesn't make sense, we can't prove losses anymore
-//        	if (child != null && !current.isValueProven(moverAgent)) 
-//        	{
-//                if (child.proofNumber(moverAgent) == 0 && child.numVisits() > minVisitsSolvedChild) 
-//                	continue;
-//            }
+        	final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
         	
         	final double exploit;
         	final double explore;
@@ -155,7 +145,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	 * Updates the PN-based terms of the selection strategy for all children of current.
 	 * @param current
 	 */
-	public void updateChildrenSelectionScores(final MP_PNMCTSNode current)
+	public void updateChildrenSelectionScores(final ScoreBoundsGPNMCTSNode current)
 	{
 		//  This is the array that we'll re-compute
 		final double[] childrenPNSSelectionTerms = current.childrenPNSSelectionTerms();
@@ -170,10 +160,10 @@ public final class MP_PNS_UCB implements SelectionStrategy
         		// OR node
         		for (int i = 0; i < numLegalMoves; ++i)
 				{
-					final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+					final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
 					if (child == null)
 					{
-						// This means: proof number = 1.0 for unexpanded child. TODO this correct?
+						// This means: proof number = 1.0 for unexpanded child.
 						sortedChildIndices.add(new ScoredInt(i, 1.0));
 					}
 					else
@@ -212,17 +202,15 @@ public final class MP_PNS_UCB implements SelectionStrategy
                 break;
 
             case SUM:
-
                 double sum = 0.0;
-                
                 
             	// OR node
             	for (int i = 0; i < numLegalMoves; ++i)
 				{
-					final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+					final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
 					if (child == null)
 					{
-						// This means: proof number = 1.0 for unexpanded child. TODO this correct?
+						// This means: proof number = 1.0 for unexpanded child.
 						sum += 1.0;
 					}
 					else
@@ -236,11 +224,11 @@ public final class MP_PNS_UCB implements SelectionStrategy
                 {
                 	for (int i = 0; i < numLegalMoves; ++i)
 					{
-						final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+						final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
 						final double number;
 						if (child == null)
 						{
-							// This means: proof number = 1.0 for unexpanded child. TODO this correct?
+							// This means: proof number = 1.0 for unexpanded child.
 							number = 1.0;
 						}
 						else
@@ -263,17 +251,16 @@ public final class MP_PNS_UCB implements SelectionStrategy
                 break;
 
             case MAX:
-            	
             	double max = 0.0;
             	double min = Double.POSITIVE_INFINITY;
                 
             	// OR node
             	for (int i = 0; i < numLegalMoves; ++i)
 				{
-					final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+					final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
 					if (child == null)
 					{
-						// This means: proof number = 1.0 for unexpanded child. TODO this correct?
+						// This means: proof number = 1.0 for unexpanded child.
 						max = Math.max(max, 1.0);
 						min = Math.min(min, 1.0);
 					}
@@ -291,11 +278,11 @@ public final class MP_PNS_UCB implements SelectionStrategy
                 {
                 	for (int i = 0; i < numLegalMoves; ++i)
 					{
-						final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+						final ScoreBoundsGPNMCTSNode child = (ScoreBoundsGPNMCTSNode) current.childForNthLegalMove(i);
 						final double number;
 						if (child == null)
 						{
-							// This means: (dis)proof number = 1.0 for unexpanded child. TODO this correct?
+							// This means: (dis)proof number = 1.0 for unexpanded child.
 							number = 1.0;
 						}
 						else
@@ -329,7 +316,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	@Override
 	public int backpropFlags()
 	{
-		return BackpropagationStrategy.PROOF_DISPROOF_NUMBERS | BackpropagationStrategy.MULTIPLAYER_PNSMCTS;
+		return BackpropagationStrategy.GPN_MCTS;
 	}
 	
 	@Override
@@ -357,7 +344,7 @@ public final class MP_PNS_UCB implements SelectionStrategy
 				}
 				else
 				{
-					System.err.println("PNS-UCB1 ignores unknown customisation: " + input);
+					System.err.println("ScoreBounded_GPNUCB ignores unknown customisation: " + input);
 				}
 			}
 		}

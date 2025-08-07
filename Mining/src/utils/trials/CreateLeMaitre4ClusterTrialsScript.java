@@ -46,10 +46,10 @@ public class CreateLeMaitre4ClusterTrialsScript
 	
 	public static void main(final String[] args)
 	{
-		final int numPlayout = 100;
+		final int numPlayout = 1000;
 		final int maxMove = 5000; // Constants.DEFAULT_MOVES_LIMIT;
 		final int thinkingTime = 1;
-		final String agentName = "Alpha-Beta"; // Can be "UCT",  "Alpha-Beta", "Alpha-Beta-UCT", "AB-Odd-Even", or "Random"
+		final String agentName = "UCT"; // Can be "UCT",  "Alpha-Beta", "Alpha-Beta-UCT", "AB-Odd-Even", or "Random"
 		final String clusterLogin = "epiette";
 		final String mainScriptName = "GenTrials.sh";
 		final int numRulesetsPerBatch = 1; // 48
@@ -81,6 +81,9 @@ public class CreateLeMaitre4ClusterTrialsScript
 					continue;
 				
 				if (gameName.replaceAll(Pattern.quote("\\"), "/").contains("reconstruction/validation/"))
+					continue;
+				
+				if ((!gameName.contains("Royal Game of Ur")) && (!gameName.contains("20 Squares")))
 					continue;
 
 				final Game game = GameLoader.loadGameFromName(gameName);

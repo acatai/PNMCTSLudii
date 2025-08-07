@@ -46,13 +46,12 @@ import search.mcts.finalmoveselection.RobustChild;
 import search.mcts.playout.MAST;
 import search.mcts.playout.NST;
 import search.mcts.playout.RandomPlayout;
-import search.mcts.selection.MP_PNS_UCB;
+import search.mcts.selection.GPN_UCB;
 import search.mcts.selection.McBRAVE;
 import search.mcts.selection.McGRAVE;
-import search.mcts.selection.PNS_UCB1;
 import search.mcts.selection.ProgressiveBias;
 import search.mcts.selection.ProgressiveHistory;
-import search.mcts.selection.ScoreBoundedMP_PNS_UCB;
+import search.mcts.selection.ScoreBounded_GPN_UCB;
 import search.mcts.selection.UCB1;
 import search.mcts.selection.UCB1GRAVE;
 import search.mcts.selection.UCB1Tuned;
@@ -260,19 +259,14 @@ public class AIFactory
 			return ucb1GRAVE;
 		}
 		
-		if (string.equalsIgnoreCase("PN-MCTS"))
+		if (string.equalsIgnoreCase("GPN-MCTS"))
 		{
-			return MCTS.createPNSMCTS(1.0, PNS_UCB1.PNUCT_VARIANT.RANK);
+			return MCTS.createGPNMCTS(1.0, GPN_UCB.PNUCT_VARIANT.RANK);
 		}
 		
-		if (string.equalsIgnoreCase("MP-PN-MCTS"))
+		if (string.equalsIgnoreCase("Score Bounded GPN-MCTS"))
 		{
-			return MCTS.createMPPNSMCTS(1.0, MP_PNS_UCB.PNUCT_VARIANT.RANK);
-		}
-		
-		if (string.equalsIgnoreCase("Score Bounded MP-PN-MCTS"))
-		{
-			return MCTS.createScoreBoundedMPPNSMCTS(1.0, ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.RANK);
+			return MCTS.createScoreBoundedGPNMCTS(1.0, ScoreBounded_GPN_UCB.PNUCT_VARIANT.RANK);
 		}
 		
 		if (string.equalsIgnoreCase("Ludii AI"))
@@ -635,17 +629,13 @@ public class AIFactory
 			ucb1GRAVE.setFriendlyName("UCB1-GRAVE");
 			return ucb1GRAVE;
 		}
-		else if (algName.equalsIgnoreCase("PN-MCTS"))
+		else if (algName.equalsIgnoreCase("GPN-MCTS"))
 		{
-			return createAI("PN-MCTS");
+			return createAI("GPN-MCTS");
 		}
-		else if (algName.equalsIgnoreCase("MP-PN-MCTS"))
+		else if (algName.equalsIgnoreCase("Score Bounded GPN-MCTS"))
 		{
-			return createAI("MP-PN-MCTS");
-		}
-		else if (algName.equalsIgnoreCase("Score Bounded MP-PN-MCTS"))
-		{
-			return createAI("Score Bounded MP-PN-MCTS");
+			return createAI("Score Bounded GPN-MCTS");
 		}
 		else if (algName.equalsIgnoreCase("Biased MCTS"))
 		{
