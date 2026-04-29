@@ -30,6 +30,9 @@ public final class MP_PNS_UCB implements SelectionStrategy
 	    RANK,
 	    SUM,
 	    MAX,
+	    LOG,
+	    EXP,
+	    EXCESS,
 	    // SOFTMAX?
 	}
 	
@@ -316,6 +319,199 @@ public final class MP_PNS_UCB implements SelectionStrategy
                 }
 
                 break;
+
+            case LOG:
+            {
+            	double minPn = Double.POSITIVE_INFINITY;
+            	double maxPn = Double.NEGATIVE_INFINITY;
+            	int numFinite = 0;
+
+            	for (int i = 0; i < numLegalMoves; ++i)
+            	{
+            		final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            		final double number;
+            		if (child == null)
+            		{
+            			// This means: proof number = 1.0 for unexpanded child.
+            			number = 1.0;
+            		}
+            		else
+            		{
+            			number = child.proofNumber(currentPlayer);
+            		}
+
+            		if (Double.isFinite(number))
+            		{
+            			minPn = Math.min(minPn, number);
+            			maxPn = Math.max(maxPn, number);
+            			++numFinite;
+            		}
+            	}
+
+            	if (numFinite > 0)
+            	{
+            		final double denom = Math.log(2.0 + maxPn - minPn);
+
+            		for (int i = 0; i < numLegalMoves; ++i)
+            		{
+            			final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            			final double number;
+            			if (child == null)
+            			{
+            				number = 1.0;
+            			}
+            			else
+            			{
+            				number = child.proofNumber(currentPlayer);
+            			}
+
+            			if (Double.isFinite(number))
+            				childrenPNSSelectionTerms[i] = 1.0 - (Math.log(1.0 + number - minPn) / denom);
+            			else
+            				childrenPNSSelectionTerms[i] = 0.0;
+            		}
+            	}
+            	else
+            	{
+            		// All children have infinite proof number.
+            		Arrays.fill(childrenPNSSelectionTerms, 0.0);
+            	}
+
+            	break;
+            }
+
+            case EXP:
+            {
+            	double minPn = Double.POSITIVE_INFINITY;
+            	double sumPn = 0.0;
+            	int numFinite = 0;
+
+            	for (int i = 0; i < numLegalMoves; ++i)
+            	{
+            		final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            		final double number;
+            		if (child == null)
+            		{
+            			number = 1.0;
+            		}
+            		else
+            		{
+            			number = child.proofNumber(currentPlayer);
+            		}
+
+            		if (Double.isFinite(number))
+            		{
+            			minPn = Math.min(minPn, number);
+            			sumPn += number;
+            			++numFinite;
+            		}
+            	}
+
+            	if (numFinite > 0)
+            	{
+            		final double meanPn = sumPn / numFinite;
+            		final double denom = 1.0 + meanPn - minPn;
+
+            		for (int i = 0; i < numLegalMoves; ++i)
+            		{
+            			final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            			final double number;
+            			if (child == null)
+            			{
+            				number = 1.0;
+            			}
+            			else
+            			{
+            				number = child.proofNumber(currentPlayer);
+            			}
+
+            			if (Double.isFinite(number))
+            				childrenPNSSelectionTerms[i] = Math.exp(-(number - minPn) / denom);
+            			else
+            				childrenPNSSelectionTerms[i] = 0.0;
+            		}
+            	}
+            	else
+            	{
+            		Arrays.fill(childrenPNSSelectionTerms, 0.0);
+            	}
+
+            	break;
+            }
+
+            case EXCESS:
+            {
+            	double minPn = Double.POSITIVE_INFINITY;
+            	int numFinite = 0;
+
+            	for (int i = 0; i < numLegalMoves; ++i)
+            	{
+            		final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            		final double number;
+            		if (child == null)
+            		{
+            			number = 1.0;
+            		}
+            		else
+            		{
+            			number = child.proofNumber(currentPlayer);
+            		}
+
+            		if (Double.isFinite(number))
+            		{
+            			minPn = Math.min(minPn, number);
+            			++numFinite;
+            		}
+            	}
+
+            	if (numFinite > 0)
+            	{
+            		double excess = 0.0;
+            		for (int i = 0; i < numLegalMoves; ++i)
+            		{
+            			final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            			final double number;
+            			if (child == null)
+            			{
+            				number = 1.0;
+            			}
+            			else
+            			{
+            				number = child.proofNumber(currentPlayer);
+            			}
+
+            			if (Double.isFinite(number))
+            				excess += (number - minPn);
+            		}
+
+            		final double denom = 1.0 + excess;
+
+            		for (int i = 0; i < numLegalMoves; ++i)
+            		{
+            			final MP_PNMCTSNode child = (MP_PNMCTSNode) current.childForNthLegalMove(i);
+            			final double number;
+            			if (child == null)
+            			{
+            				number = 1.0;
+            			}
+            			else
+            			{
+            				number = child.proofNumber(currentPlayer);
+            			}
+
+            			if (Double.isFinite(number))
+            				childrenPNSSelectionTerms[i] = 1.0 - ((number - minPn) / denom);
+            			else
+            				childrenPNSSelectionTerms[i] = 0.0;
+            		}
+            	}
+            	else
+            	{
+            		Arrays.fill(childrenPNSSelectionTerms, 0.0);
+            	}
+
+            	break;
+            }
 
             default:
                 throw new AssertionError("UNKNOWN PNS METHOD!");

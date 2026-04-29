@@ -21,7 +21,7 @@ import search.mcts.selection.ScoreBoundedMP_PNS_UCB;
 import utils.AIFactory;
 
 public class Run_MP_4P {
-    static String USAGE_ERR = "Usage: Run <time(ms)> <game_name> <num_games> <rank|sum|max> <pns_constant>";
+    static String USAGE_ERR = "Usage: Run <time(ms)> <game_name> <num_games> <rank|sum|max|log|exp|excess> <pns_constant>";
 
     private static String ratio(int wins, int games) {
         if (games <= 0)
@@ -65,7 +65,10 @@ public class Run_MP_4P {
             case "rank": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.RANK; break;
             case "sum": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.SUM; break;
             case "max": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.MAX; break;
-            default: System.err.println("Wrong PNS method, please choose rank, sum, or max");System.err.println(USAGE_ERR);System.exit(1);
+            case "log": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.LOG; break;
+            case "exp": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.EXP; break;
+            case "excess": pnsMethod = ScoreBoundedMP_PNS_UCB.PNUCT_VARIANT.EXCESS; break;
+            default: System.err.println("Wrong PNS method, please choose rank, sum, max, log, exp, or excess");System.err.println(USAGE_ERR);System.exit(1);
         }
 
         double pnsConstant = Double.parseDouble(args[4]);
